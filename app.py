@@ -111,10 +111,12 @@ def static_files(filename):
     return send_from_directory('.', filename)
 
 if __name__ == '__main__':
-    print("Initializing Haven & Hearth RAG API...")
-    if init_vectorstore():
-        print("Starting Flask server...")
-        app.run(debug=False, host='0.0.0.0', port=5000)
-    else:
-        print("Failed to initialize vectorstore")
-        sys.exit(1)
+    print("Starting Haven & Hearth RAG API...")
+    print("Vector store will load on first search request")
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
+```
+
+3. In Railway dashboard, go to **Settings → Start Command** and change it to:
+```
+gunicorn -w 1 -b 0.0.0.0:$PORT app:app
