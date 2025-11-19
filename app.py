@@ -19,13 +19,15 @@ CHROMA_DIR = "./hafen_chroma_db"
 vectorstore = None
 embeddings = None
 
-def init_vectorstore():
-    """Load vectorstore on startup"""
+def load_vectorstore_lazy():
+    """Load vectorstore on first use (lazy loading)"""
     global vectorstore, embeddings
     
+    if vectorstore is not None:
+        return  # Already loaded
+    
     if not os.path.exists(CHROMA_DIR):
-        print(f"ERROR: Vector store not found at {CHROMA_DIR}")
-        return False
+        raise Exception(f"Vector store not found at {CHROMA_DIR}")
     
     try:
         print("Loading embeddings...")
@@ -40,10 +42,9 @@ def init_vectorstore():
             embedding_function=embeddings
         )
         print("Vector store loaded successfully")
-        return True
     except Exception as e:
         print(f"Error loading vectorstore: {e}")
-        return False
+        raise
 
 @app.route('/api/search', methods=['POST'])
 def search():
