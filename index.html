@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haven & Hearth Code Search</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f0f1e;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .search-section {
+            margin-bottom: 40px;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 16px;
+            background: #1a1a2e;
+            border: 2px solid #2a2a4e;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-input::placeholder {
+            color: #666;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .params {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .param-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .param-group label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .param-group input {
+            width: 60px;
+            padding: 6px 10px;
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 4px;
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .status {
+            padding: 12px 16px;
+            background: #1a1a2e;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .status.loading {
+            border-left-color: #ffc107;
+            color: #ffc107;
+        }
+
+        .status.error {
+            border-left-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .status.success {
+            border-left-color: #51cf66;
+            color: #51cf66;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .results-header h2 {
+            font-size: 1.3em;
+            color: #e0e0e0;
+        }
+
+        .copy-all-btn {
+            background: #51cf66;
+            padding: 10px 16px;
+            font-size: 0.9em;
+        }
+
+        .copy-all-btn:hover {
+            background: #40c057;
+        }
+
+        .result-item {
+            background: #1a1a2e;
+            border: 1px solid #2a2a4e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+        }
+
+        .result-header {
+            padding: 16px;
+            background: #0f0f1e;
+            border-bottom: 1px solid #2a2a4e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-filename {
+            font-family: 'Monaco', 'Courier New', monospace;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.95em;
+            flex: 1;
+            min-width: 200px;
+            word-break: break-all;
+        }
+
+        .result-score {
+            background: #2a2a4e;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #aaa;
+        }
+
+        .result-content {
+            padding: 16px;
+        }
+
+        .code-block {
+            background: #0f0f1e;
+            border: 1px solid #2a2a4e;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .code-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .code-header {
+            padding: 8px 12px;
+            background: #2a2a4e;
+            font-size: 0.85em;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            padding: 4px 12px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn.copied {
+            background: #51cf66;
+        }
+
+        pre {
+            margin: 0;
+            padding: 12px;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .search-controls {
+                flex-direction: column;
+            }
+
+            .search-input {
+                min-width: 100%;
+            }
+
+            .params {
+                flex-direction: column;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 Haven & Hearth Code Search</h1>
+        <p>RAG-powered codebase explorer</p>
+    </div>
+
+    <div class="container">
+        <div class="search-section">
+            <div class="search-controls">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    id="searchInput" 
+                    placeholder="Search the codebase... (e.g., 'tree interaction', 'player health')"
+                >
+                <button onclick="search()">Search</button>
+            </div>
+
+            <div class="params">
+                <div class="param-group">
+                    <label for="topK">Results:</label>
+                    <input type="number" id="topK" value="10" min="1" max="50">
+                </div>
+                <div class="param-group">
+                    <label for="maxFiles">Max Files:</label>
+                    <input type="number" id="maxFiles" value="5" min="1" max="20">
+                </div>
+            </div>
+
+            <div class="status" id="status" style="display: none;"></div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2 id="resultsTitle">Results</h2>
+                <button class="copy-all-btn" onclick="copyAllToClipboard()">📋 Copy All for Claude</button>
+            </div>
+            <div id="resultsList"></div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+            <div class="empty-state-icon">🔍</div>
+            <p>Enter a search query to explore the codebase</p>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const topKInput = document.getElementById('topK');
+        const maxFilesInput = document.getElementById('maxFiles');
+        const status = document.getElementById('status');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsList = document.getElementById('resultsList');
+        const emptyState = document.getElementById('emptyState');
+
+        let lastResults = null;
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') search();
+        });
+
+        async function search() {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            showStatus('Searching...', 'loading');
+            resultsSection.classList.remove('active');
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: parseInt(topKInput.value),
+                        max_files: parseInt(maxFilesInput.value)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const data = await response.json();
+                lastResults = data;
+                displayResults(data);
+                showStatus(`Found ${data.count} relevant files`, 'success');
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+
+        function displayResults(data) {
+            if (data.results.length === 0) {
+                resultsList.innerHTML = '<p style="color: #666; padding: 40px; text-align: center;">No results found. Try a different query.</p>';
+                resultsSection.classList.add('active');
+                emptyState.style.display = 'none';
+                return;
+            }
+
+            resultsList.innerHTML = data.results.map((result, idx) => `
+                <div class="result-item">
+                    <div class="result-header">
+                        <div class="result-filename">📄 ${result.source}</div>
+                        <div class="result-score">Score: ${result.best_score.toFixed(3)}</div>
+                    </div>
+                    <div class="result-content">
+                        ${result.chunks.slice(0, 2).map((chunk, cidx) => `
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span>Relevant section ${cidx + 1}</span>
+                                    <button class="copy-btn" data-copy="${escapeHtml(chunk.content)}">Copy</button>
+                                </div>
+                                <pre><code>${escapeHtml(chunk.content)}</code></pre>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            resultsSection.classList.add('active');
+            emptyState.style.display = 'none';
+
+            // Highlight code blocks
+            document.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+
+            // Attach copy button listeners
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const text = this.dataset.copy;
+                    copyToClipboard(this, text);
+                });
+            });
+        }
+
+        function copyToClipboard(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.textContent;
+                btn.textContent = '✓ Copied';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function copyAllToClipboard() {
+            if (!lastResults) return;
+
+            let fullText = '='.repeat(80) + '\n';
+            fullText += 'HAVEN & HEARTH CODEBASE CONTEXT\n';
+            fullText += '='.repeat(80) + '\n\n';
+            fullText += `Query: ${lastResults.query}\n\n`;
+            fullText += `Found relevant code in ${lastResults.count} files:\n\n`;
+            fullText += '='.repeat(80) + '\n\n';
+
+            lastResults.results.forEach((result, idx) => {
+                fullText += `### FILE ${idx + 1}: ${result.source}\n`;
+                fullText += `Relevance score: ${result.best_score.toFixed(3)}\n\n`;
+
+                result.chunks.slice(0, 2).forEach((chunk, cidx) => {
+                    fullText += `--- Relevant section ${cidx + 1} ---\n`;
+                    fullText += chunk.content + '\n\n';
+                });
+            });
+
+            fullText += '='.repeat(80) + '\n';
+            fullText += 'INSTRUCTIONS FOR CLAUDE.AI:\n';
+            fullText += '='.repeat(80) + '\n\n';
+            fullText += 'Copy everything above and paste into Claude.ai, then ask:\n\n';
+            fullText += `"Given the Haven & Hearth codebase context above, please help me:\n`;
+            fullText += `${lastResults.query}\n\n`;
+            fullText += `Important: Use ONLY the methods, classes, and patterns shown in the code above.\n`;
+            fullText += `Do not hallucinate methods that don't exist in the codebase."\n`;
+
+            navigator.clipboard.writeText(fullText).then(() => {
+                alert('✓ Copied! Paste into Claude.ai');
+            });
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        function escapeBackticks(text) {
+            return text.replace(/`/g, '\\`');
+        }
+    </script>
+</body>
+</html>
